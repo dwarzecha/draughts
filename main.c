@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <conio.h>
 
 /*
 TODO
@@ -134,61 +133,58 @@ void move_selector(struct sizeof_board b1, char board[b1.rows][b1.columns], stru
 
     while(1) // always until break
     {
-        if(kbhit()) // check if key was hit
+        key = getchar(); // get the ASCII value of the key pressed
+
+        if(key==100) // if d was pressed
         {
-            key = getch(); // get the ASCII value of the key pressed
-
-            if(key==100) // if d was pressed
+            if(s1->j == b1.columns - b1.square_width) // doing nothing if the selector is on the right border
             {
-                if(s1->j == b1.columns - b1.square_width) // doing nothing if the selector is on the right border
-                {
 
-                }
-                else
-                {
-                    clear_selector(b1, board, s1); // clear previous selector
-                    s1->j = s1->j + b1.square_width; // move b1.square_height spaces to the right
-                    break;
-                }
             }
-            else if(key == 97) // if a was pressed
+            else
             {
-                if(s1->j == 1) // doing nothing if the selector is on the left border
-                {
-
-                }
-                else
-                {
-                    clear_selector(b1, board, s1); // clear previous selector
-                    s1->j = s1->j - b1.square_width; // move b1.square_height spaces to the left
-                    break;
-                }
+                clear_selector(b1, board, s1); // clear previous selector
+                s1->j = s1->j + b1.square_width; // move b1.square_height spaces to the right
+                break;
             }
-            else if(key == 119) // if w was pressed
+        }
+        else if(key == 97) // if a was pressed
+        {
+            if(s1->j == 1) // doing nothing if the selector is on the left border
             {
-                if(s1->i == 1) // doing nothing if the selector is on the upper border
-                {
 
-                }
-                else
-                {
-                    clear_selector(b1, board, s1); // clear previous selector
-                    s1->i = s1->i - b1.square_height; // move b1.square_height spaces up
-                    break;
-                }
             }
-            else if(key == 115) // if s was pressed
+            else
             {
-                if(s1->i == b1.rows - b1.square_height) // doing nothing if the selector is on the lower border
-                {
+                clear_selector(b1, board, s1); // clear previous selector
+                s1->j = s1->j - b1.square_width; // move b1.square_height spaces to the left
+                break;
+            }
+        }
+        else if(key == 119) // if w was pressed
+        {
+            if(s1->i == 1) // doing nothing if the selector is on the upper border
+            {
 
-                }
-                else
-                {
-                    clear_selector(b1, board, s1); // clear previous selector
-                    s1->i = s1->i + b1.square_height; // move b1.square_height spaces down
-                    break;
-                }
+            }
+            else
+            {
+                clear_selector(b1, board, s1); // clear previous selector
+                s1->i = s1->i - b1.square_height; // move b1.square_height spaces up
+                break;
+            }
+        }
+        else if(key == 115) // if s was pressed
+        {
+            if(s1->i == b1.rows - b1.square_height) // doing nothing if the selector is on the lower border
+            {
+
+            }
+            else
+            {
+                clear_selector(b1, board, s1); // clear previous selector
+                s1->i = s1->i + b1.square_height; // move b1.square_height spaces down
+                break;
             }
         }
     }

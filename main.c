@@ -45,7 +45,7 @@ struct piece
 	int pos_y;
 };
 
-void clear_screen();
+// void clear_screen(); // use if running in standard windows terminals, unsafe (system()); replaced with printf ("\33c\e[3J") in main
 void fill_board(struct sizeof_board b1, char board[b1.rows][b1.columns]);
 void print_board(struct sizeof_board b1, char board[b1.rows][b1.columns]);
 void move_selector(struct sizeof_board b1, char board[b1.rows][b1.columns], struct selector *s1);
@@ -65,7 +65,7 @@ int main()
     fill_board(b1, board); // fill board array with graphic symbols
     while(!end_of_game)
     {
-        clear_screen(); // clear the console
+        printf("\33c\e[3J"); // clear the console
         set_selector(b1, board, s1); // input the selector symbols into the board array
         print_board(b1, board); // print the board array
         printf("%d %d", s1.i, s1.j); // debugging line
@@ -74,14 +74,17 @@ int main()
     return 0;
 }
 
+/*
 void clear_screen()
 {
     #ifdef _WIN32
         system("cls");
     #elif __APPLE__
-        printf ("\33c\e[3J");
+        // printf ("\33c\e[3J");
+        system("clear"); // fake, only prints a bunch of \n
     #endif
 }
+*/
 
 void fill_board(struct sizeof_board b1, char board[b1.rows][b1.columns])
 {

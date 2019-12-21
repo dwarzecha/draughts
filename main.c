@@ -76,11 +76,11 @@ int main()
 
 void clear_screen()
 {
-#ifdef _WIN32
-    system("cls");
-#else
-    system ("clear");
-#endif
+    #ifdef _WIN32
+        system("cls");
+    #elif __APPLE__
+        printf ("\33c\e[3J");
+    #endif
 }
 
 void fill_board(struct sizeof_board b1, char board[b1.rows][b1.columns])

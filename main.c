@@ -5,6 +5,9 @@
 /*
 TODO
 - finish fill men algorithm
+- if_append
+- if_move_possible
+- append to selector
 - move men algorithm (check for conditions, etc.)
 - choosing game type?
 - [FIX] why initial position of selector + 1 is the same as +2?
@@ -72,17 +75,20 @@ typedef struct piece
 
 	int pos_x;
 	int pos_y;
+
+	bool if_append;
 }piece;
 
 void fill_board(sizeof_board b1, char board[b1.rows][b1.columns]);
 void print_board(sizeof_board b1, char board[b1.rows][b1.columns]);
-void move_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1);
+void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]);
 void set_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector s1);
 void clear_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1);
 void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_pieces]);
 void fill_men(sizeof_board b1, char board[b1.rows][b1.columns], game_parameters g1, piece p1[g1.number_of_pieces]);
 // void ask_for_dimensions(game_parameters *g1); // just for debugging properties
 void check_for_errors(game_parameters g1);
+void append(sizeof_board b1, selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]);
 
 int main()
 {
@@ -117,13 +123,13 @@ int main()
         set_selector(b1, board, s1); // input the selector symbols into the board array
         print_board(b1, board); // print the board array
         printf("%d %d", s1.i, s1.j); // debugging line
-        /*
+        
         for (int i=0; i<g1.number_of_pieces; i++)
         {
-        	printf("\n%d %d %d %d %d\n", p1[i].alive, p1[i].colour, p1[i].type, p1[i].pos_x, p1[i].pos_y);
+        	printf("%d ", p1[i].if_append);
         }
-        */
-        move_selector(b1, board, &s1); // change selector position
+        
+        controls(b1, board, &s1, g1, p1); // change selector position
     }
     return 0;
 }
@@ -207,7 +213,7 @@ void print_board(sizeof_board b1, char board[b1.rows][b1.columns])
 
 }
 
-void move_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1)
+void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces])
 {
     char key = 0; // buffer for key pressed
 
@@ -267,6 +273,11 @@ void move_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s
                 break;
             }
         }
+        else if(key == 'e')
+		{
+			append(b1, s1, g1, p1);
+			break;
+		}
         else if(key == 'x') // debugging line
         {
         	printf("\33c\e[3J"); // clear the console
@@ -297,6 +308,7 @@ void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_piece
 	{
 		p1[i].alive = true;
 		p1[i].king = false;
+		p1[i].if_append = false;
 
 		if(i<g1.number_of_pieces/2)
 		{
@@ -506,4 +518,27 @@ void check_for_errors(game_parameters g1)
     	getchar();
     	exit(0);
     }
+}
+
+void append(sizeof_board b1, selector *s1, game_parameters g1, piece p1[g1.number_of_pieces])
+{
+	for(int i=b1.border_y+1; i<b1.rows; i+=b1.square_height) // every b1.square_height row starting from b1.border_y+1
+    {
+	    for(int j=b1.border_x+1; j<b1.columns; j+=b1.square_width) // set j on every b1.square_width cell starting on b1.border_x+1
+	    {
+	    	for(int k=0; k<g1.number_of_pieces; k++)
+	    	{
+	    		if(p1[k].pos_x == j && p1[k].pos_y == i)
+	    		{
+	    			if(p1[k].alive == 1)
+	    			{
+	    				if(p1[k].pos_x == s1->j && p1[k].pos_y == s1->i)
+	    				{
+	    					p1[k].if_append = true;
+	    				}
+	    			}
+	    		}
+	    	}
+	    }
+	}
 }

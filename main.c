@@ -3,30 +3,54 @@
 #include <stdbool.h>
 
 /*
-TODO
-- make black men appear on top when moving (why append_checker inside fill_men not working?)
-- finish fill men algorithm
-- if_append <- think about ir
-- if_move_possible
-- move men algorithm (check for conditions, etc.)
-- choosing game type?
-- [FIX] why initial position of selector + 1 is the same as +2?
-        (the board starts printing at 0)
-- [CODE] organize iterators inside print_men
-- [CODE] sort the passed variables in function headers
-- [CODE] comments
-- [CODE] check_for_errors non universal, but we'll see close to the end of project
-- [CODE] separate headers file?
-- [FRONTEND] make set_men function more scalable?
+#ifdef WIN32
+#include <conio.h>
+#else
+#include <unistd.h>
+#include <termios.h>
+
+int getch (void)
+{
+    int key;
+    struct termios oldSettings, newSettings;    // stuktury z ustawieniami terminala
+
+    tcgetattr(STDIN_FILENO, &oldSettings);    // pobranie ustawień terminala
+    newSettings = oldSettings;
+    newSettings.c_lflag &= ~(ICANON | ECHO);    // ustawienie odpowiednich flag
+    tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);    // zastosowanie ustawień
+    key = getchar();    // pobranie znaku ze standardowego wejścia
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);    // przywrócenie poprzednich ustawień terminala
+    return key;
+}
+#endif
 */
 
 /*
-#ifdef _WIN32
-    #define clear_screen system("cls")
-#elif __APPLE__
-    // printf ("\33c\e[3J");
-    #define clear_screen system("clear") // fake, only prints a bunch of \n
-#endif
+TODO
+
+- do I want to use getch?
+- make black men appear on top when moving (why append_checker inside fill_men not working?)
+
+- move men algorithm (check for conditions (if_move_possible), etc.)
+- capturing other men
+- king mechanics (move possibilities, when to become king)
+- menu (start game, instructions, exit)
+- konami code
+- conditions for end_of_game = true
+- return to menu
+- start new game option (malloc?)
+
+- [FIX] why initial position of selector + 1 is the same as +2?
+        (the board starts printing at 0)
+
+- [CODE] make controls operate on switch (and everything else)
+- [CODE] connect ifs
+- [CODE] organize iterators inside print_men
+
+- [CODE] check_for_errors non universal, but we'll see close to the end of project (also prepare ask_for_dimensions)
+
+- [CODE] sort the passed variables in function headers
+- [CODE] comments
 */
 
 typedef struct game_parameters
@@ -35,6 +59,7 @@ typedef struct game_parameters
     int board_dimensions;
     int number_of_pieces;
     int number_of_games;
+    int game_status_indicator; // 0 - no errors, 1 - trying to put back a piece on a field where another piece is
 }game_parameters;
 
 typedef struct sizeof_board
@@ -83,21 +108,22 @@ typedef struct piece
 
 void fill_board(sizeof_board b1, char board[b1.rows][b1.columns]);
 void print_board(sizeof_board b1, char board[b1.rows][b1.columns]);
-void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]);
+void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces]);
 void set_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector s1);
 void clear_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]);
 void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_pieces]);
 void fill_men(sizeof_board b1, char board[b1.rows][b1.columns], game_parameters g1, piece p1[g1.number_of_pieces]);
 // void ask_for_dimensions(game_parameters *g1); // just for debugging properties
-void check_for_errors(game_parameters g1);
-void append(sizeof_board b1, selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]);
+// void check_for_errors(game_parameters g1);
+void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces]);
+void print_info(game_parameters *g1, selector s1, piece p1[g1->number_of_pieces]);
 
 int main()
 {
 	// initial parameters
 
-    game_parameters g1 = {false, 10, 30, 1};
-    check_for_errors(g1); // check if g1.number_of_pieces won't be too big for this g1.board_dimensions
+    game_parameters g1 = {false, 10, 40, 1, 0};
+    // check_for_errors(g1); // check if g1.number_of_pieces won't be too big for this g1.board_dimensions
     // ask_for_dimensions(&g1);
 
 
@@ -119,19 +145,12 @@ int main()
 
     while(!g1.end_of_game)
     {
-        printf("\33c\e[3J"); // clear the console, replace with clear_screen; below if necessary
-        //clear_screen; // use if running in standard windows terminals, unsafe (system())
+        printf("\33c\e[3J"); // clear the console, replace with system("cls"); if running in standard windows teminals
         fill_men(b1, board, g1, p1);
         set_selector(b1, board, s1); // input the selector symbols into the board array
         print_board(b1, board); // print the board array
-        printf("%d %d\n", s1.i, s1.j); // debugging line
-        
-        for (int i=0; i<g1.number_of_pieces; i++)
-        {
-        	printf("%d ", p1[i].if_append);
-        }
-        
-        controls(b1, board, &s1, g1, p1); // change selector position
+        print_info(&g1, s1, p1);
+        controls(b1, board, &s1, &g1, p1); // change selector position
     }
     return 0;
 }
@@ -212,7 +231,7 @@ void print_board(sizeof_board b1, char board[b1.rows][b1.columns])
     }
 }
 
-void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces])
+void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces])
 {
     char key = 0; // buffer for key pressed
 
@@ -228,9 +247,9 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, g1, p1); // clear previous selector
+                clear_selector(b1, board, s1, *g1, p1); // clear previous selector
 
-                for(int i=0; i<g1.number_of_pieces; i++)
+                for(int i=0; i<g1->number_of_pieces; i++)
 				{
 					if(p1[i].pos_x == s1->j && p1[i].pos_y == s1->i)
 					{
@@ -253,9 +272,9 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, g1, p1); // clear previous selector
+                clear_selector(b1, board, s1, *g1, p1); // clear previous selector
 
-                for(int i=0; i<g1.number_of_pieces; i++)
+                for(int i=0; i<g1->number_of_pieces; i++)
 				{
 					if(p1[i].pos_x == s1->j && p1[i].pos_y == s1->i)
 					{
@@ -278,9 +297,9 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, g1, p1); // clear previous selector
+                clear_selector(b1, board, s1, *g1, p1); // clear previous selector
 
-                for(int i=0; i<g1.number_of_pieces; i++)
+                for(int i=0; i<g1->number_of_pieces; i++)
 				{
 					if(p1[i].pos_x == s1->j && p1[i].pos_y == s1->i)
 					{
@@ -303,9 +322,9 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, g1, p1); // clear previous selector
+                clear_selector(b1, board, s1, *g1, p1); // clear previous selector
 
-                for(int i=0; i<g1.number_of_pieces; i++)
+                for(int i=0; i<g1->number_of_pieces; i++)
 				{
 					if(p1[i].pos_x == s1->j && p1[i].pos_y == s1->i)
 					{
@@ -377,22 +396,31 @@ void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_piece
 
 		if(i<g1.number_of_pieces/2)
 		{
-			p1[i].white = false; 
+			p1[i].white = false;
 		}
 		else
 		{
 			p1[i].white = true; 
 		}
-
-		if(g1.board_dimensions*i<g1.number_of_pieces)
-		{
-			for(int j=0; j<g1.board_dimensions; j++)
-			{
-				p1[j+g1.board_dimensions*i].pos_x = b1.border_x+1+j*b1.square_width;
-				p1[j+g1.board_dimensions*i].pos_y = b1.border_y+1+i*b1.square_height;
-			}
-		}
 	}
+	
+	for(int i=0; i<2*g1.number_of_pieces/g1.board_dimensions; i++)
+	{
+		for(int j=0; j<g1.board_dimensions/2; j++)
+		{
+			if(p1[j+g1.board_dimensions/2*i].white == false)
+			{
+				p1[j+g1.board_dimensions/2*i].pos_x = b1.border_x+1+(j*2+!(i%2))*b1.square_width;
+				p1[j+g1.board_dimensions/2*i].pos_y = b1.border_y+1+i*b1.square_height;
+			}
+			else
+			{
+				p1[j+g1.board_dimensions/2*i].pos_x = b1.columns-b1.square_width-(j*2+!(i%2))*b1.square_width;
+				p1[j+g1.board_dimensions/2*i].pos_y = b1.rows-b1.square_height-(i-g1.number_of_pieces/g1.board_dimensions)*b1.square_height;
+			}
+		}	
+	}
+	
 }
 
 void fill_men(sizeof_board b1, char board[b1.rows][b1.columns], game_parameters g1, piece p1[g1.number_of_pieces])
@@ -706,6 +734,7 @@ void ask_for_dimensions(game_parameters *g1)
 }
 */
 
+/*
 void check_for_errors(game_parameters g1)
 {
 	if(g1.number_of_pieces>(g1.board_dimensions*g1.board_dimensions)/2)
@@ -721,19 +750,24 @@ void check_for_errors(game_parameters g1)
     	exit(0);
     }
 }
+*/
 
-void append(sizeof_board b1, selector *s1, game_parameters g1, piece p1[g1.number_of_pieces])
+void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces])
 {
 	bool append_checker = false;
+	bool other_under_appended = false;
 
-	for(int i=0; i<g1.number_of_pieces; i++)
+	for(int i=0; i<g1->number_of_pieces; i++)
 	{
-		if(p1[i].if_append == true)
+		if(p1[i].alive == true && p1[i].if_append == true)
 		{
 			append_checker = true;
 		}
+	}
 
-		if(p1[i].alive == 1)
+	for(int i=0; i<g1->number_of_pieces; i++)
+	{
+		if(p1[i].alive == true)
 		{
 			if(p1[i].pos_x == s1->j && p1[i].pos_y == s1->i)
 			{
@@ -741,11 +775,50 @@ void append(sizeof_board b1, selector *s1, game_parameters g1, piece p1[g1.numbe
 				{
 					p1[i].if_append = true;
 				}
-				else if(p1[i].if_append == true)
+				else
 				{
-					p1[i].if_append = false;
+					for(int j=0; j<g1->number_of_pieces; j++)
+					{
+						if(p1[j].pos_x == s1->j && p1[j].pos_y == s1->i && p1[j].alive == true && p1[j].if_append == false)
+						{
+							other_under_appended = true;
+						}
+					}
+					
+					if(other_under_appended == true)
+					{
+						g1->game_status_indicator = 1;
+					}
+					else
+					{
+						p1[i].if_append = false;
+					}
 				}
-			}
+			}	
 		}
+	}
+}
+
+void print_info(game_parameters *g1, selector s1, piece p1[g1->number_of_pieces])
+{
+	printf("\n%d %d\n", s1.i, s1.j); // debugging line
+    /*
+    for (int i=0; i<g1.number_of_pieces; i++)
+    {
+    	printf("%d ", p1[i].if_append);
+    }
+	*/
+    switch(g1->game_status_indicator)
+	{
+		case 0:
+			printf("\nGood luck!\n");
+			break;
+		case 1:
+			printf("\nThis square is taken!\n");
+			g1->game_status_indicator = 0;
+			break;
+		default:
+			printf("\nGood luck!\n");
+			break;
 	}
 }

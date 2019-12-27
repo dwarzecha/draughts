@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+//#include <math.h>
 
 /*
 #ifdef WIN32
@@ -31,14 +32,15 @@ TODO
 - do I want to use getch?
 - make black men appear on top when moving (why append_checker inside fill_men not working?)
 
-- move men algorithm (check for conditions (if_move_possible), etc.)
 - capturing other men
 - king mechanics (move possibilities, when to become king)
+- changing turns
 - menu (start game, instructions, exit)
 - konami code
 - conditions for end_of_game = true
 - return to menu
 - start new game option (malloc?)
+- merge conditions for move?
 
 - [FIX] why initial position of selector + 1 is the same as +2?
         (the board starts printing at 0)
@@ -103,20 +105,35 @@ typedef struct piece
 	int pos_x;
 	int pos_y;
 
+	int previous_pos_x;
+	int previous_pos_y;
+
 	bool if_append;
 }piece;
 
+typedef struct square
+{
+	int x;
+	int y;
+	bool can_move;
+	bool empty;
+}square;
+
+void assign_square_coordinates(game_parameters g1, square coordinates[g1.board_dimensions][g1.board_dimensions], sizeof_board b1);
 void fill_board(sizeof_board b1, char board[b1.rows][b1.columns]);
 void print_board(sizeof_board b1, char board[b1.rows][b1.columns]);
-void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces]);
+void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces], square coordinates[g1->board_dimensions][g1->board_dimensions]);
 void set_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector s1);
 void clear_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]);
 void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_pieces]);
 void fill_men(sizeof_board b1, char board[b1.rows][b1.columns], game_parameters g1, piece p1[g1.number_of_pieces]);
 // void ask_for_dimensions(game_parameters *g1); // just for debugging properties
 // void check_for_errors(game_parameters g1);
-void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces]);
-void print_info(game_parameters *g1, selector s1, piece p1[g1->number_of_pieces]);
+void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces], square coordinates[g1->board_dimensions][g1->board_dimensions]);
+void fill_move_possibility(game_parameters g1, square coordinates[g1.board_dimensions][g1.board_dimensions], sizeof_board b1, char board[b1.rows][b1.columns], piece p1[g1.number_of_pieces]);
+void print_info(sizeof_board b1, game_parameters *g1, selector s1, piece p1[g1->number_of_pieces], square coordinates[g1->board_dimensions][g1->board_dimensions]);
+bool append_check(game_parameters g1, piece p1[g1.number_of_pieces]);
+void check_men_position(game_parameters g1, piece p1[g1.number_of_pieces], square coordinates[g1.board_dimensions][g1.board_dimensions]);
 
 int main()
 {
@@ -130,9 +147,11 @@ int main()
     // defining game objects
 
     sizeof_board b1 = {10, 5, 0, 0, b1.square_height*g1.board_dimensions+b1.border_y+1, b1.square_width*g1.board_dimensions+b1.border_x+1}; // define board size with default dimensions 10x10
+    square coordinates[g1.board_dimensions][g1.board_dimensions];
+    assign_square_coordinates(g1, coordinates, b1);
     selector s1 = {b1.border_y+1, b1.border_x+1}; // define selector starting position
     char board[b1.rows][b1.columns]; // create an array for board
-    piece p1[g1.number_of_pieces]; // create an array of structures for pieces 
+    piece p1[g1.number_of_pieces]; // create an array of structures for pieces
 
 
     // filling game objects with initial content
@@ -146,13 +165,28 @@ int main()
     while(!g1.end_of_game)
     {
         printf("\33c\e[3J"); // clear the console, replace with system("cls"); if running in standard windows teminals
+        check_men_position(g1, p1, coordinates);
+        fill_move_possibility(g1, coordinates, b1, board, p1);
         fill_men(b1, board, g1, p1);
         set_selector(b1, board, s1); // input the selector symbols into the board array
         print_board(b1, board); // print the board array
-        print_info(&g1, s1, p1);
-        controls(b1, board, &s1, &g1, p1); // change selector position
+        print_info(b1, &g1, s1, p1, coordinates);
+        controls(b1, board, &s1, &g1, p1, coordinates); // change selector position
     }
     return 0;
+}
+
+void assign_square_coordinates(game_parameters g1, square coordinates[g1.board_dimensions][g1.board_dimensions], sizeof_board b1)
+{
+	for(int i=0; i<g1.board_dimensions; i++)
+	{
+		for(int j=0; j<g1.board_dimensions; j++)
+		{
+			coordinates[i][j].x = b1.border_x+1+j*b1.square_width;
+			coordinates[i][j].y = b1.border_y+1+i*b1.square_height;
+			coordinates[i][j].can_move = false;
+		}
+	}
 }
 
 void fill_board(sizeof_board b1, char board[b1.rows][b1.columns])
@@ -231,7 +265,7 @@ void print_board(sizeof_board b1, char board[b1.rows][b1.columns])
     }
 }
 
-void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces])
+void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces], square coordinates[g1->board_dimensions][g1->board_dimensions])
 {
     char key = 0; // buffer for key pressed
 
@@ -256,6 +290,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
 						if(p1[i].if_append == true)
 						{
 							p1[i].pos_x += b1.square_width;
+							break;
 						}
 					}
 				}
@@ -281,6 +316,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
 						if(p1[i].if_append == true)
 						{
 							p1[i].pos_x -= b1.square_width;
+							break;
 						}
 					}
 				}
@@ -306,6 +342,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
 						if(p1[i].if_append == true)
 						{
 							p1[i].pos_y -= b1.square_height;
+							break;
 						}
 					}
 				}
@@ -331,6 +368,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
 						if(p1[i].if_append == true)
 						{
 							p1[i].pos_y += b1.square_height;
+							break;
 						}
 					}
 				}
@@ -341,7 +379,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
         }
         else if(key == 'e')
 		{
-			append(b1, s1, g1, p1);
+			append(b1, s1, g1, p1, coordinates);
 			break;
 		}
         else if(key == 'x') // debugging line
@@ -418,6 +456,9 @@ void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_piece
 				p1[j+g1.board_dimensions/2*i].pos_x = b1.columns-b1.square_width-(j*2+!(i%2))*b1.square_width;
 				p1[j+g1.board_dimensions/2*i].pos_y = b1.rows-b1.square_height-(i-g1.number_of_pieces/g1.board_dimensions)*b1.square_height;
 			}
+
+			p1[j+g1.board_dimensions/2*i].previous_pos_x = p1[j+g1.board_dimensions/2*i].pos_x;
+			p1[j+g1.board_dimensions/2*i].previous_pos_y = p1[j+g1.board_dimensions/2*i].pos_y;
 		}	
 	}
 	
@@ -752,18 +793,11 @@ void check_for_errors(game_parameters g1)
 }
 */
 
-void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces])
+void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->number_of_pieces], square coordinates[g1->board_dimensions][g1->board_dimensions])
 {
-	bool append_checker = false;
+	bool append_checker = append_check(*g1, p1);
 	bool other_under_appended = false;
-
-	for(int i=0; i<g1->number_of_pieces; i++)
-	{
-		if(p1[i].alive == true && p1[i].if_append == true)
-		{
-			append_checker = true;
-		}
-	}
+	bool can_not_move = false;
 
 	for(int i=0; i<g1->number_of_pieces; i++)
 	{
@@ -773,21 +807,129 @@ void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->num
 			{
 				if(append_checker == false)
 				{
+					p1[i].previous_pos_y = p1[i].pos_y;
+					p1[i].previous_pos_x = p1[i].pos_x;
 					p1[i].if_append = true;
+
+					for(int j=0; j<g1->board_dimensions; j++)
+					{
+						for (int k=0; k<g1->board_dimensions; k++)
+						{
+							if (p1[i].king == true)
+							{
+								if(p1[i].white == true)
+								{
+									if(coordinates[j][k].x == p1[i].pos_x + b1.square_width && coordinates[j][k].y == p1[i].pos_y - b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].pos_x - b1.square_width && coordinates[j][k].y == p1[i].pos_y - b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].previous_pos_x && coordinates[j][k].y == p1[i].previous_pos_y)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else
+									{
+										coordinates[j][k].can_move = false;
+									}
+								}
+								else
+								{
+									if(coordinates[j][k].x == p1[i].pos_x + b1.square_width && coordinates[j][k].y == p1[i].pos_y + b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].pos_x - b1.square_width && coordinates[j][k].y == p1[i].pos_y + b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].previous_pos_x && coordinates[j][k].y == p1[i].previous_pos_y)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else
+									{
+										coordinates[j][k].can_move = false;
+									}
+								}
+							}
+							else
+							{
+								if(p1[i].white == true)
+								{
+									if(coordinates[j][k].x == p1[i].pos_x + b1.square_width && coordinates[j][k].y == p1[i].pos_y - b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].pos_x - b1.square_width && coordinates[j][k].y == p1[i].pos_y - b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].previous_pos_x && coordinates[j][k].y == p1[i].previous_pos_y)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else
+									{
+										coordinates[j][k].can_move = false;
+									}
+								}
+								else
+								{
+									if(coordinates[j][k].x == p1[i].pos_x + b1.square_width && coordinates[j][k].y == p1[i].pos_y + b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].pos_x - b1.square_width && coordinates[j][k].y == p1[i].pos_y + b1.square_height)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else if(coordinates[j][k].x == p1[i].previous_pos_x && coordinates[j][k].y == p1[i].previous_pos_y)
+									{
+										coordinates[j][k].can_move = true;
+									}
+									else
+									{
+										coordinates[j][k].can_move = false;
+									}
+								}
+							}
+						}
+					}
 				}
 				else
 				{
 					for(int j=0; j<g1->number_of_pieces; j++)
 					{
+						for(int k=0; k<g1->number_of_pieces; k++)
+						{
+							if(coordinates[j][k].x == s1->j && coordinates[j][k].y == s1->i && coordinates[j][k].can_move == false)
+							{
+								can_not_move = true;
+								break;
+							}
+						}
+					}
+
+					for(int j=0; j<g1->number_of_pieces; j++)
+					{
 						if(p1[j].pos_x == s1->j && p1[j].pos_y == s1->i && p1[j].alive == true && p1[j].if_append == false)
 						{
 							other_under_appended = true;
+							break;
 						}
 					}
 					
 					if(other_under_appended == true)
 					{
 						g1->game_status_indicator = 1;
+					}
+					else if(can_not_move == true)
+					{
+						g1->game_status_indicator = 2;
 					}
 					else
 					{
@@ -799,15 +941,60 @@ void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->num
 	}
 }
 
-void print_info(game_parameters *g1, selector s1, piece p1[g1->number_of_pieces])
+void fill_move_possibility(game_parameters g1, square coordinates[g1.board_dimensions][g1.board_dimensions], sizeof_board b1, char board[b1.rows][b1.columns], piece p1[g1.number_of_pieces])
+{
+	bool append_checker = append_check(g1, p1);
+
+	for(int i=0; i<g1.board_dimensions; i++)
+	{
+		for(int j=0; j<g1.board_dimensions; j++)
+		{
+			
+			if(coordinates[i][j].can_move == true && append_checker == true)
+			{
+				if(coordinates[i][j].empty == true)
+				{
+					for (int l=coordinates[i][j].y; l<coordinates[i][j].y+b1.square_height-1; l++)
+					{
+						board[l][coordinates[i][j].x] = '|';
+				    	board[l][coordinates[i][j].x+b1.square_width-2] = '|';
+					}
+				}
+			}
+			else
+			{
+				for (int l=coordinates[i][j].y; l<coordinates[i][j].y+b1.square_height-1; l++)
+				{
+					for (int m=coordinates[i][j].x; m<coordinates[i][j].x+b1.square_width-1; m++)
+					{
+						board[l][m] = ' ';
+					}
+				}
+			}	
+		}
+	}
+}
+
+void print_info(sizeof_board b1, game_parameters *g1, selector s1, piece p1[g1->number_of_pieces], square coordinates[g1->board_dimensions][g1->board_dimensions])
 {
 	printf("\n%d %d\n", s1.i, s1.j); // debugging line
-    /*
-    for (int i=0; i<g1.number_of_pieces; i++)
+    
+   	/*
+    for (int i=0; i<g1->number_of_pieces; i++)
     {
-    	printf("%d ", p1[i].if_append);
+    	printf("%d x:%d y:%d\n", p1[i].if_append, p1[i].pos_x, p1[i].pos_y);
     }
 	*/
+	/*
+	for(int i=0; i<g1->board_dimensions; i++)
+	{
+		for (int j=0; j<g1->board_dimensions; j++)
+		{
+			printf("%d ", coordinates[i][j].can_move);
+		}
+	}
+	*/
+
     switch(g1->game_status_indicator)
 	{
 		case 0:
@@ -817,8 +1004,46 @@ void print_info(game_parameters *g1, selector s1, piece p1[g1->number_of_pieces]
 			printf("\nThis square is taken!\n");
 			g1->game_status_indicator = 0;
 			break;
+		case 2:
+			printf("\nCan't touch this!\n");
+			g1->game_status_indicator = 0;
+			break;
 		default:
 			printf("\nGood luck!\n");
 			break;
+	}
+}
+
+bool append_check(game_parameters g1, piece p1[g1.number_of_pieces])
+{
+	bool append_checker = false;
+	for(int i=0; i<g1.number_of_pieces; i++)
+	{
+		if(p1[i].alive == true && p1[i].if_append == true)
+		{
+			append_checker = true;
+			break;
+		}
+	}
+
+	return append_checker;
+}
+
+void check_men_position(game_parameters g1, piece p1[g1.number_of_pieces], square coordinates[g1.board_dimensions][g1.board_dimensions])
+{
+	for(int i=0; i<g1.board_dimensions; i++)
+	{
+		for(int j=0; j<g1.board_dimensions; j++)
+		{
+			coordinates[i][j].empty = true;
+			for(int k=0; k<g1.number_of_pieces; k++)
+			{
+				if(p1[k].pos_x == coordinates[i][j].x && p1[k].pos_y == coordinates[i][j].y)
+				{
+					coordinates[i][j].empty = false;
+					break;
+				}
+			}
+		}
 	}
 }

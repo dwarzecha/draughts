@@ -30,7 +30,6 @@ int getch (void)
 TODO
 
 - do I want to use getch?
-- make black men appear on top when moving (why append_checker inside fill_pieces not working?)
 - merge conditions for move?
 
 - black men move conditions not working
@@ -123,7 +122,7 @@ void create_men(sizeof_board b1, game_parameters g1, piece p1[g1.number_of_piece
 void fill_board(sizeof_board b1, char board[b1.rows][b1.columns]);
 void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.columns], piece p1[g1.number_of_pieces]);
 void set_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector s1);
-void clear_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces]); // organize variables
+void clear_selector(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, piece p1[g1.number_of_pieces]);
 void fill_move_possibility(game_parameters g1, square square_attributes[g1.board_dimensions][g1.board_dimensions], sizeof_board b1, char board[b1.rows][b1.columns], piece p1[g1.number_of_pieces]); // organize variables
 
 // printing stuff
@@ -186,7 +185,7 @@ void assign_square_attributes(game_parameters g1, sizeof_board b1, square square
 		{
 			square_attributes[i][j].x = b1.border_x+1+j*b1.square_width;
 			square_attributes[i][j].y = b1.border_y+1+i*b1.square_height;
-			square_attributes[i][j].can_move = false;
+			square_attributes[i][j].can_move = true;
 		}
 	}
 }
@@ -295,7 +294,8 @@ void fill_board(sizeof_board b1, char board[b1.rows][b1.columns])
 
 void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.columns], piece p1[g1.number_of_pieces])
 {
-	int append_checker = append_check(g1, p1);
+	bool append_checker = append_check(g1, p1);
+	int which_appended = append_check(g1, p1) - 1;
 
 	for(int i=0; i<g1.number_of_pieces; i++)
 	{
@@ -305,6 +305,14 @@ void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.col
 			{
 				if(p1[i].king == true)
 				{
+					for (int j=p1[i].pos_y; j<p1[i].pos_y+b1.square_height-1; j++)
+					{
+						for (int k=p1[i].pos_x; k<p1[i].pos_x+b1.square_width-1; k++)
+						{
+							board[j][k] = ' ';
+						}
+					}
+
 					for(int j=0; j<b1.square_height-1; j++)
 					{
 						for(int k=0; k<b1.square_width-1; k++)
@@ -352,6 +360,14 @@ void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.col
         		}
 				else
 				{
+					for (int j=p1[i].pos_y; j<p1[i].pos_y+b1.square_height-1; j++)
+					{
+						for (int k=p1[i].pos_x; k<p1[i].pos_x+b1.square_width-1; k++)
+						{
+							board[j][k] = ' ';
+						}
+					}
+
 					for(int j=0; j<b1.square_height-1; j++)
 					{
 						for(int k=0; k<b1.square_width-1; k++)
@@ -374,6 +390,14 @@ void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.col
 			{
 				if(p1[i].king == true)
 				{
+					for (int j=p1[i].pos_y; j<p1[i].pos_y+b1.square_height-1; j++)
+					{
+						for (int k=p1[i].pos_x; k<p1[i].pos_x+b1.square_width-1; k++)
+						{
+							board[j][k] = ' ';
+						}
+					}
+
 					for(int j=0; j<b1.square_height-1; j++)
 					{
 						for(int k=0; k<b1.square_width-1; k++)
@@ -407,6 +431,14 @@ void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.col
 				}
 				else
 				{
+					for (int j=p1[i].pos_y; j<p1[i].pos_y+b1.square_height-1; j++)
+					{
+						for (int k=p1[i].pos_x; k<p1[i].pos_x+b1.square_width-1; k++)
+						{
+							board[j][k] = ' ';
+						}
+					}
+
 					for(int j=0; j<b1.square_height-1; j++)
 					{
 						for(int k=0; k<b1.square_width-1; k++)
@@ -434,140 +466,172 @@ void fill_pieces(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.col
 					}
 				}
 			}
+		}
+	}
 
-			if(append_checker != false)
+	if(append_checker != false)
+	{
+		if(p1[which_appended].white == true)
+		{
+			if(p1[which_appended].king == true)
 			{
-				if(p1[append_checker].white == true)
+				for (int j=p1[which_appended].pos_y; j<p1[which_appended].pos_y+b1.square_height-1; j++)
 				{
-					if(p1[append_checker].king == true)
+					for (int k=p1[which_appended].pos_x; k<p1[which_appended].pos_x+b1.square_width-1; k++)
 					{
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+k] = 'O';
-
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+1] = ' ';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-3] = ' ';
-
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+2] = ' ';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-4] = ' ';
-							}
-						}
-
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+k] = '|';
-
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+1] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-3] = ' ';
-							}
-						}
-
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+k] ='-';
-								
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+1] = ' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-3] = ' ';
-							}
-						}
-					}
-					else
-					{
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+k] = 'O';
-
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+1] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-3] = ' ';
-								
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+1] =' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-3] =' ';
-							}
-						}
+						board[j][k] = ' ';
 					}
 				}
-				else
+
+				for(int j=0; j<b1.square_height-1; j++)
 				{
-					if(p1[append_checker].king == true)
+					for(int k=0; k<b1.square_width-1; k++)
 					{
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+3] = 'O';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-5] = 'O';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+k] = 'O';
 
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+k] = '|';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-2] = ' ';
 
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-2] = ' ';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-3] = ' ';
 
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+1] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-3] = ' ';
-							}
-						}
-
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+k] ='-';
-								
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+1] = ' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-3] = ' ';
-							}
-						}
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+2] = ' ';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-4] = ' ';
 					}
-					else
+				}
+
+				for(int j=0; j<b1.square_height-1; j++)
+				{
+					for(int k=0; k<b1.square_width-1; k++)
 					{
-						for(int j=0; j<b1.square_height-1; j++)
-						{
-							for(int k=0; k<b1.square_width-1; k++)
-							{
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+k] = 'O';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+k] ='O';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+k] = '|';
 
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+1] = 'O';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+2] = 'O';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-3] ='O';
-								board[p1[append_checker].pos_y+j][p1[append_checker].pos_x+b1.square_width-4] ='O';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-2] = ' ';
 
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-3] = ' ';
+					}
+				}
 
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-								board[p1[append_checker].pos_y][p1[append_checker].pos_x+b1.square_width-3] = ' ';
+				for(int j=0; j<b1.square_height-1; j++)
+				{
+					for(int k=0; k<b1.square_width-1; k++)
+					{
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+k] ='-';
+						
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-2] = ' ';
 
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x] = ' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-2] = ' ';
-								
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+1] =' ';
-								board[p1[append_checker].pos_y+b1.square_height-2][p1[append_checker].pos_x+b1.square_width-3] =' ';
-							}
-						}
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-3] = ' ';
+					}
+				}
+			}
+			else
+			{
+				for (int j=p1[which_appended].pos_y; j<p1[which_appended].pos_y+b1.square_height-1; j++)
+				{
+					for (int k=p1[which_appended].pos_x; k<p1[which_appended].pos_x+b1.square_width-1; k++)
+					{
+						board[j][k] = ' ';
+					}
+				}
+
+				for(int j=0; j<b1.square_height-1; j++)
+				{
+					for(int k=0; k<b1.square_width-1; k++)
+					{
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+k] = 'O';
+
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-2] = ' ';
+
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-3] = ' ';
+						
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+1] =' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-3] =' ';
+					}
+				}
+			}
+		}
+		else
+		{
+			if(p1[which_appended].king == true)
+			{
+				for (int j=p1[which_appended].pos_y; j<p1[which_appended].pos_y+b1.square_height-1; j++)
+				{
+					for (int k=p1[which_appended].pos_x; k<p1[which_appended].pos_x+b1.square_width-1; k++)
+					{
+						board[j][k] = ' ';
+					}
+				}
+
+				for(int j=0; j<b1.square_height-1; j++)
+				{
+					for(int k=0; k<b1.square_width-1; k++)
+					{
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+3] = 'O';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-5] = 'O';
+
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+k] = '|';
+
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-2] = ' ';
+
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-3] = ' ';
+					}
+				}
+
+				for(int j=0; j<b1.square_height-1; j++)
+				{
+					for(int k=0; k<b1.square_width-1; k++)
+					{
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+k] ='-';
+						
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-2] = ' ';
+
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+1] = ' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-3] = ' ';
+					}
+				}
+			}
+			else
+			{
+				for (int j=p1[which_appended].pos_y; j<p1[which_appended].pos_y+b1.square_height-1; j++)
+				{
+					for (int k=p1[which_appended].pos_x; k<p1[which_appended].pos_x+b1.square_width-1; k++)
+					{
+						board[j][k] = ' ';
+					}
+				}
+
+				for(int j=0; j<b1.square_height-1; j++)
+				{
+					for(int k=0; k<b1.square_width-1; k++)
+					{
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+k] = 'O';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+k] ='O';
+
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+1] = 'O';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+2] = 'O';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-3] ='O';
+						board[p1[which_appended].pos_y+j][p1[which_appended].pos_x+b1.square_width-4] ='O';
+
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+1] = ' ';
+
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-2] = ' ';
+						board[p1[which_appended].pos_y][p1[which_appended].pos_x+b1.square_width-3] = ' ';
+
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x] = ' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-2] = ' ';
+						
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+1] =' ';
+						board[p1[which_appended].pos_y+b1.square_height-2][p1[which_appended].pos_x+b1.square_width-3] =' ';
 					}
 				}
 			}
@@ -583,7 +647,7 @@ void set_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector s1)
     board[s1.i+b1.square_height-2][s1.j+b1.square_width-2] = '|';
 }
 
-void clear_selector(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, game_parameters g1, piece p1[g1.number_of_pieces])
+void clear_selector(game_parameters g1, sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, piece p1[g1.number_of_pieces])
 {
     board[s1->i][s1->j] = ' ';
     board[s1->i][s1->j+b1.square_width-2] = ' ';
@@ -617,7 +681,7 @@ void fill_move_possibility(game_parameters g1, square square_attributes[g1.board
 	{
 		for(int j=0; j<g1.board_dimensions; j++)
 		{
-			if(square_attributes[i][j].can_move == true && append_checker == true)
+			if(/*square_attributes[i][j].can_move == true && */append_checker == true)
 			{
 				if(square_attributes[i][j].empty == true)
 				{
@@ -677,6 +741,8 @@ void print_info(sizeof_board b1, game_parameters *g1, selector s1, piece p1[g1->
 		printf("\n");
 	}
 
+	printf("%d", append_check(*g1, p1));
+
    	/*
     for (int i=0; i<g1->number_of_pieces; i++)
     {
@@ -732,7 +798,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, *g1, p1);
+                clear_selector(*g1, b1, board, s1, p1);
 
                 for(int i=0; i<g1->number_of_pieces; i++)
 				{
@@ -758,7 +824,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, *g1, p1);
+                clear_selector(*g1, b1, board, s1, p1);
 
                 for(int i=0; i<g1->number_of_pieces; i++)
 				{
@@ -784,7 +850,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, *g1, p1);
+                clear_selector(*g1, b1, board, s1, p1);
 
                 for(int i=0; i<g1->number_of_pieces; i++)
 				{
@@ -810,7 +876,7 @@ void controls(sizeof_board b1, char board[b1.rows][b1.columns], selector *s1, ga
             }
             else
             {
-                clear_selector(b1, board, s1, *g1, p1);
+                clear_selector(*g1, b1, board, s1, p1);
 
                 for(int i=0; i<g1->number_of_pieces; i++)
 				{
@@ -1045,7 +1111,7 @@ int append_check(game_parameters g1, piece p1[g1.number_of_pieces])
 	{
 		if(p1[i].alive == true && p1[i].if_append == true)
 		{
-			append_checker = i;
+			append_checker = i + 1;
 			break;
 		}
 	}

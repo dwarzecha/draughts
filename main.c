@@ -855,10 +855,10 @@ void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->num
 			{
 				if(append_checker == false)
 				{
-					p1[i].previous_pos_y = p1[i].pos_y;
-					p1[i].previous_pos_x = p1[i].pos_x;
+					//p1[i].previous_pos_y = p1[i].pos_y;
+					//p1[i].previous_pos_x = p1[i].pos_x;
 					p1[i].if_append = true; // picking the piece up
-
+					/*
 					for(int j=0; j<g1->board_dimensions; j++) // move conditions for various piece types
 					{
 						for(int k=0; k<g1->board_dimensions; k++)
@@ -989,9 +989,11 @@ void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->num
 							}
 						}
 					}
+					*/
 				}
 				else // checking if putting the piece back is possible
 				{
+					/*
 					for(int j=0; j<g1->number_of_pieces; j++)
 					{
 						for(int k=0; k<g1->number_of_pieces; k++)
@@ -1003,7 +1005,8 @@ void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->num
 							}
 						}
 					}
-
+					*/
+					/*
 					for(int j=0; j<g1->number_of_pieces; j++)
 					{
 						if(p1[j].pos_x == s1->j && p1[j].pos_y == s1->i && p1[j].alive == true && p1[j].if_append == false)
@@ -1012,20 +1015,20 @@ void append(sizeof_board b1, selector *s1, game_parameters *g1, piece p1[g1->num
 							break;
 						}
 					}
-					
+					*/
 					// final checking for conditions
-					if(other_under_appended == true)
-					{
-						g1->game_status_indicator = 1;
-					}
-					else if(can_not_move == true)
-					{
-						g1->game_status_indicator = 2;
-					}
-					else
-					{
+					//if(other_under_appended == true)
+					//{
+					//	g1->game_status_indicator = 1;
+					//}
+					//else if(can_not_move == true)
+					//{
+					//	g1->game_status_indicator = 2;
+					//}
+					//else
+					//{
 						p1[i].if_append = false; // putting the piece back
-					}
+					//}
 				}
 			}	
 		}

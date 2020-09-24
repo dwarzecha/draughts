@@ -1,6 +1,6 @@
 # draughts
 ![Image](screenshot1.png)
-![image](screenshot2.png)
+![Image](screenshot2.png)
 
 My first university C project
 

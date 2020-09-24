@@ -10,8 +10,7 @@ they serve as "child functions" to the ones above */
 #define MAJOR_VER 0
 #define MIN0R_VER 9
 
-#ifdef _WIN32
-#include <conio.h>
+#ifdef WIN32
 #else
 #include <unistd.h>
 #include <termios.h>
